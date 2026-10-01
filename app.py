@@ -21,14 +21,15 @@ SUBJECTS = [
     "สรุป English", "แบบฝึกหัด Math", "เตรียมสอบ IT Security"
 ]
 
-# ฟังก์ชันสุ่มโจทย์
+# ฟังก์ชันสุ่มโจทย์ (ระดับ Basic ตัวเลขน้อย คำนวณง่าย)
 def generate_data(seed, count):
     random.seed(seed)
-    zero_idx = random.randint(0, count - 1)
     rows = []
     for i in range(count):
-        at = 0 if i == zero_idx else random.randint(0, 10)
-        bt = random.randint(1, 8)
+        # ให้งานแรก (P1) เริ่มที่เวลา 0 เสมอ และงานอื่นๆ เข้ามาช่วง 0 - 4
+        at = 0 if i == 0 else random.randint(0, 4)
+        # Burst Time สุ่มช่วง 1 - 5 หน่วย เพื่อให้คำนวณง่าย ตัวเลขไม่เยอะ
+        bt = random.randint(1, 5)
         rows.append({
             "Process": f"P{i+1}",
             "ชื่องาน / วิชา": random.choice(SUBJECTS),
