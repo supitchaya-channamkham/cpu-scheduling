@@ -21,20 +21,6 @@ SUBJECTS = [
     "สรุป English", "แบบฝึกหัด Math", "เตรียมสอบ IT Security"
 ]
 
-# --- 1. แผงควบคุมการสุ่มและรับค่า ---
-st.subheader("1. กำหนดค่าเริ่มต้นและสุ่มโจทย์")
-col1, col2, col3, col4 = st.columns(4)
-
-with col1:
-    seed_val = st.number_input("ค่า Seed:", value=1234, step=1)
-with col2:
-    quantum_val = st.number_input("Time Quantum (q = 1-4):", min_value=1, max_value=4, value=2, step=1)
-with col3:
-    num_processes = st.selectbox("จำนวนงาน:", [5, 6], index=0)
-with col4:
-    st.write("")
-    btn_random = st.button("สุ่มโจทย์ใหม่")
-
 # ฟังก์ชันสุ่มโจทย์
 def generate_data(seed, count):
     random.seed(seed)
@@ -51,23 +37,59 @@ def generate_data(seed, count):
         })
     return rows
 
-# จัดการ Session State สำหรับ random_key
+# จัดการ Session State เริ่มต้น
+if "seed_val" not in st.session_state:
+    st.session_state.seed_val = 1234
+
 if "random_key" not in st.session_state:
     st.session_state.random_key = 0
 
 if "prev_seed" not in st.session_state:
-    st.session_state.prev_seed = seed_val
+    st.session_state.prev_seed = st.session_state.seed_val
 
-# หากผู้ใช้กดปุ่มสุ่มโจทย์ใหม่ หรือเปลี่ยนค่า seed หรือเปลี่ยนจำนวนงาน
-if btn_random:
+if "num_processes" not in st.session_state:
+    st.session_state.num_processes = 5
+
+if "prev_num_processes" not in st.session_state:
+    st.session_state.prev_num_processes = st.session_state.num_processes
+
+if "process_list" not in st.session_state:
+    st.session_state.process_list = generate_data(st.session_state.seed_val, st.session_state.num_processes)
+
+# ฟังก์ชัน Callback เมื่อกดปุ่มสุ่มโจทย์ใหม่ (สุ่มทั้ง Seed และค่าในตาราง)
+def on_random_click():
+    current_seed = st.session_state.get("seed_val", 1234)
+    new_seed = random.randint(1000, 9999)
+    while new_seed == current_seed:
+        new_seed = random.randint(1000, 9999)
+    st.session_state.seed_val = new_seed
+    st.session_state.prev_seed = new_seed
     st.session_state.random_key += 1
-    st.session_state.process_list = generate_data(seed_val + st.session_state.random_key, num_processes)
-elif st.session_state.prev_seed != seed_val:
+    st.session_state.process_list = generate_data(new_seed, st.session_state.num_processes)
+
+# --- 1. แผงควบคุมการสุ่มและรับค่า ---
+st.subheader("1. กำหนดค่าเริ่มต้นและสุ่มโจทย์")
+col1, col2, col3, col4 = st.columns(4)
+
+with col1:
+    seed_val = st.number_input("ค่า Seed:", step=1, key="seed_val")
+with col2:
+    quantum_val = st.number_input("Time Quantum (q = 1-4):", min_value=1, max_value=4, value=2, step=1)
+with col3:
+    num_processes = st.selectbox("จำนวนงาน:", [5, 6], key="num_processes")
+with col4:
+    st.write("")
+    st.button("สุ่มโจทย์ใหม่", on_click=on_random_click)
+
+# ตรวจสอบกรณีผู้ใช้แก้ไขค่า Seed หรือจำนวนงานด้วยตัวเองใน UI
+if st.session_state.prev_seed != seed_val:
     st.session_state.prev_seed = seed_val
     st.session_state.random_key += 1
-    st.session_state.process_list = generate_data(seed_val + st.session_state.random_key, num_processes)
-elif "process_list" not in st.session_state or len(st.session_state.process_list) != num_processes:
-    st.session_state.process_list = generate_data(seed_val + st.session_state.random_key, num_processes)
+    st.session_state.process_list = generate_data(seed_val, num_processes)
+elif st.session_state.prev_num_processes != num_processes or len(st.session_state.process_list) != num_processes:
+    st.session_state.prev_num_processes = num_processes
+    st.session_state.random_key += 1
+    st.session_state.process_list = generate_data(seed_val, num_processes)
 
 # --- 2. แสดงตารางที่แก้ไขค่าได้เอง ---
 st.subheader("2. รายการงาน (ดับเบิลคลิกที่ช่องเพื่อแก้ไขค่าได้)")
