@@ -21,21 +21,29 @@ SUBJECTS = [
     "สรุป English", "แบบฝึกหัด Math", "เตรียมสอบ IT Security"
 ]
 
-# ฟังก์ชันสุ่มโจทย์ (ระดับ Basic ตัวเลขน้อย คำนวณง่าย)
+# ฟังก์ชันสุ่มโจทย์ตามข้อกำหนดของใบงาน (AT 0-10, BT 1-8, มี AT=0 อย่างน้อย 1 งาน, ซ้ำได้, เหลื่อมเวลากัน)
 def generate_data(seed, count):
     random.seed(seed)
+    # สุ่มเลือกอย่างน้อยหนึ่งงานให้มี AT = 0
+    zero_idx = random.randint(0, count - 1)
     rows = []
     for i in range(count):
-        # ให้งานแรก (P1) เริ่มที่เวลา 0 เสมอ และงานอื่นๆ เข้ามาช่วง 0 - 4
-        at = 0 if i == 0 else random.randint(0, 4)
-        # Burst Time สุ่มช่วง 1 - 5 หน่วย เพื่อให้คำนวณง่าย ตัวเลขไม่เยอะ
-        bt = random.randint(1, 5)
+        # สุ่ม AT เป็นจำนวนเต็ม 0-10 (อย่างน้อยหนึ่งงานมี AT = 0, สามารถซ้ำกันได้)
+        at = 0 if i == zero_idx else random.randint(0, 10)
+        # สุ่ม BT เป็นจำนวนเต็ม 1-8
+        bt = random.randint(1, 8)
         rows.append({
             "Process": f"P{i+1}",
             "ชื่องาน / วิชา": random.choice(SUBJECTS),
             "AT": at,
             "BT": bt
         })
+    
+    # ตรวจสอบเงื่อนไข "ต้องเหลื่อมเวลากัน" (ต้องมีเวลามาถึงที่แตกต่างกัน ไม่ใช่ทุกงานมาเวลาเดียวกันทั้งหมด)
+    if all(r["AT"] == rows[0]["AT"] for r in rows) and count > 1:
+        other_idx = (zero_idx + 1) % count
+        rows[other_idx]["AT"] = random.randint(1, 10)
+
     return rows
 
 # จัดการ Session State เริ่มต้น
