@@ -2,6 +2,7 @@ import streamlit as st
 import random
 import pandas as pd
 import altair as alt
+import streamlit.components.v1 as components
 
 # ตั้งค่าหน้าเว็บแบบ Warm Minimalist
 st.set_page_config(
@@ -19,7 +20,7 @@ def render_clean_html(html_str):
 
 
 # ==============================================================================
-# --- WARM MINIMALIST THEME STYLESHEET ---
+# --- WARM MINIMALIST THEME STYLESHEET & PRINT CSS ---
 # ==============================================================================
 render_clean_html("""
     <style>
@@ -120,13 +121,81 @@ render_clean_html("""
         box-shadow: 0 8px 24px rgba(149, 157, 165, 0.06) !important;
     }
     
-    /* Print Layout */
+    /* คลาสสำหรับเนื้อหาที่แสดงเฉพาะตอนสั่งพิมพ์ */
+    .print-only {
+        display: none;
+    }
+    
+    /* ========================================================================== */
+    /* --- PRINT CSS: จัดหน้ากระดาษ A4 สำหรับพิมพ์รายงาน / SAVE AS PDF --- */
+    /* ========================================================================== */
     @media print {
-        header, footer, .stButton, [data-testid="stToolbar"], div[data-testid="stRadio"] {
+        @page {
+            size: A4 portrait;
+            margin: 12mm 12mm 15mm 12mm;
+        }
+        
+        /* 1. ซ่อนแถบเครื่องมือและเมนู Streamlit ทั้งหมด */
+        header, 
+        footer, 
+        [data-testid="stHeader"], 
+        [data-testid="stToolbar"], 
+        [data-testid="stDecoration"], 
+        [data-testid="stStatusWidget"],
+        #MainMenu, 
+        .stDeployButton,
+        iframe,
+        .no-print {
             display: none !important;
         }
-        .stApp {
+        
+        /* 2. ซ่อนปุ่มและคอนโทรลที่ไม่เกี่ยวกับการพิมพ์ */
+        .stButton,
+        button,
+        [data-testid="stNumberInput"],
+        [data-testid="stSelectbox"],
+        div[data-testid="stRadio"],
+        div[data-testid="stDataEditor"],
+        .guidance-card {
+            display: none !important;
+        }
+        
+        /* 3. แสดงเนื้อหาเฉพาะตอนพิมพ์ */
+        .print-only {
+            display: block !important;
+        }
+        
+        /* 4. บังคับพื้นหลังกระดาษขาว ตัวอักษรดำชัดเจน */
+        html, body, .stApp, [class*="css"] {
             background: #FFFFFF !important;
+            background-color: #FFFFFF !important;
+            color: #000000 !important;
+        }
+        
+        * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
+        }
+        
+        /* 5. จัดระเบียบตารางและชาร์ตไม่ให้ขาดท่อนข้ามหน้า */
+        table, tr, td, th, .gantt-outer-card, .metric-cards-container, .winner-card {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+        }
+        
+        table {
+            border-color: #CBD5E1 !important;
+        }
+        
+        .gantt-scroll-container {
+            overflow: visible !important;
+        }
+        
+        .gantt-outer-card {
+            box-shadow: none !important;
+            border: 1px solid #CBD5E1 !important;
+            margin-bottom: 20px !important;
         }
     }
     </style>
@@ -134,33 +203,57 @@ render_clean_html("""
 
 
 # ==============================================================================
-# --- HEADER BAR ---
+# --- HEADER BAR & WORKING JAVASCRIPT PRINT BUTTON ---
 # ==============================================================================
-render_clean_html("""
-    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid #EBE7DF;">
+col_head, col_btn = st.columns([3.6, 1.4])
+with col_head:
+    render_clean_html("""
         <div>
             <h1 style="font-size: 24px; font-weight: 700; color: #0F172A; margin: 0 0 4px 0; letter-spacing: -0.3px;">CPU Scheduling Simulator</h1>
             <p style="font-size: 13.5px; color: #64748B; margin: 0;">การจำลองการจัดตารางเวลาซีพียู: FCFS, SJF (Non-preemptive) และ Round Robin</p>
         </div>
-        <div>
-            <button onclick="window.print()" style="
+    """)
+with col_btn:
+    # ปุ่มพิมพ์ด้วย JavaScript window.parent.print() ผ่าน components.html
+    # เพื่อให้ทำงานได้จริงโดยตรงในเบราว์เซอร์
+    components.html("""
+        <div style="display: flex; justify-content: flex-end; align-items: flex-start; height: 100%; margin-top: 4px;">
+            <button id="print-trigger-btn" onclick="executePrint()" style="
                 background: #FFFFFF;
                 color: #334155;
-                border: 1px solid #E2E8F0;
+                border: 1px solid #CBD5E1;
                 padding: 8px 18px;
                 border-radius: 10px;
-                font-size: 13px;
+                font-size: 13.5px;
                 font-weight: 600;
                 cursor: pointer;
-                box-shadow: 0 2px 6px rgba(149, 157, 165, 0.06);
-                font-family: 'Prompt', sans-serif;
+                box-shadow: 0 2px 6px rgba(149, 157, 165, 0.08);
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Prompt', sans-serif;
                 transition: all 0.15s ease;
-            ">
-                🖨️ พิมพ์รายงาน / PDF
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                white-space: nowrap;
+            " onmouseover="this.style.background='#F8FAFC'; this.style.borderColor='#94A3B8'; this.style.transform='translateY(-1px)';"
+               onmouseout="this.style.background='#FFFFFF'; this.style.borderColor='#CBD5E1'; this.style.transform='translateY(0)';"
+               onmousedown="this.style.transform='translateY(1px)';">
+                <span>🖨️ พิมพ์รายงาน / PDF</span>
             </button>
         </div>
-    </div>
-""")
+        <script>
+            function executePrint() {
+                try {
+                    if (window.parent && window.parent !== window) {
+                        window.parent.print();
+                    } else {
+                        window.print();
+                    }
+                } catch (e) {
+                    window.print();
+                }
+            }
+        </script>
+    """, height=48)
 
 
 # ==============================================================================
@@ -347,9 +440,46 @@ if edited_records != st.session_state.process_list:
 
 processes_input = st.session_state.process_list
 
+# ตาราง Job Queue สำหรับแสดงผลเฉพาะเวลาสั่งพิมพ์ / PDF (คมชัดระดับเวกเตอร์ ไม่เจอปัญหาแคนวาสหาย)
+print_queue_rows = []
+for p in processes_input:
+    st_info = get_process_style(p["Process"])
+    row_html = f"""
+        <tr style="border-bottom: 1px solid #CBD5E1;">
+            <td style="padding: 8px 12px; text-align: center;">
+                <span style="display: inline-block; padding: 2px 10px; border-radius: 6px; font-weight: 700; font-size: 12px; background: {st_info['bg']}; color: {st_info['text']}; border: 1px solid {st_info['border']};">
+                    {p['Process']}
+                </span>
+            </td>
+            <td style="padding: 8px 12px; color: #1E293B; font-weight: 600; font-size: 13px;">{p['ชื่องาน / วิชา']}</td>
+            <td style="padding: 8px 12px; text-align: center; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #1E293B;">{p['AT']}</td>
+            <td style="padding: 8px 12px; text-align: center; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #1E293B;">{p['BT']}</td>
+        </tr>
+    """
+    print_queue_rows.append(row_html)
 
-# ==============================================================================
-# --- SCHEDULING ALGORITHMS (FCFS, SJF-NP, ROUND ROBIN) ---
+print_job_queue_html = f"""
+    <div class="print-only" style="margin-bottom: 22px;">
+        <div style="font-size: 13px; color: #475569; margin-bottom: 8px; font-weight: 600;">
+            พารามิเตอร์การทดลอง: Time Quantum (q) = {quantum_val} | Seed = {seed_val} | จำนวน Process = {len(processes_input)} งาน
+        </div>
+        <table style="width: 100%; border-collapse: collapse; text-align: left; border: 1px solid #CBD5E1; border-radius: 8px; overflow: hidden;">
+            <thead>
+                <tr style="background: #F8FAFC; border-bottom: 1.5px solid #CBD5E1;">
+                    <th style="padding: 9px 12px; text-align: center; color: #334155; font-size: 12px; font-weight: 700;">Process</th>
+                    <th style="padding: 9px 12px; color: #334155; font-size: 12px; font-weight: 700;">ชื่องาน / วิชา</th>
+                    <th style="padding: 9px 12px; text-align: center; color: #334155; font-size: 12px; font-weight: 700;">Arrival Time (AT)</th>
+                    <th style="padding: 9px 12px; text-align: center; color: #334155; font-size: 12px; font-weight: 700;">Burst Time (BT)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {''.join(print_queue_rows)}
+            </tbody>
+        </table>
+    </div>
+"""
+render_clean_html(print_job_queue_html)
+
 # ==============================================================================
 
 # 1. FCFS
