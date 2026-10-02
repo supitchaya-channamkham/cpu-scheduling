@@ -256,8 +256,9 @@ if "prev_num_processes" not in st.session_state:
 if "process_list" not in st.session_state:
     st.session_state.process_list = generate_data(st.session_state.seed_val, st.session_state.num_processes)
 
+# กำหนดให้เริ่มต้นเป็น False (ยังไม่แสดงผลลัพธ์จนกว่าจะกดปุ่ม Run)
 if "has_run" not in st.session_state:
-    st.session_state.has_run = True
+    st.session_state.has_run = False
 
 def on_random_click():
     current_seed = st.session_state.get("seed_val", 1234)
@@ -268,7 +269,8 @@ def on_random_click():
     st.session_state.prev_seed = new_seed
     st.session_state.random_key += 1
     st.session_state.process_list = generate_data(new_seed, st.session_state.num_processes)
-    st.session_state.has_run = True
+    # รีเซ็ตเป็น False ทันทีที่สุ่มโจทย์ใหม่ เพื่อซ่อนผลลัพธ์เก่าจนกว่าจะกด Run อีกครั้ง
+    st.session_state.has_run = False
 
 
 # ==============================================================================
@@ -298,16 +300,24 @@ with col4:
     st.write("")
     st.button("🎲 สุ่มโจทย์ใหม่", on_click=on_random_click, use_container_width=True)
 
+# ตรวจสอบการเปลี่ยน Time Quantum
+if "prev_quantum" not in st.session_state:
+    st.session_state.prev_quantum = quantum_val
+if st.session_state.prev_quantum != quantum_val:
+    st.session_state.prev_quantum = quantum_val
+    st.session_state.has_run = False
+
+# ตรวจสอบการเปลี่ยนค่า Seed หรือจำนวนงาน
 if st.session_state.prev_seed != seed_val:
     st.session_state.prev_seed = seed_val
     st.session_state.random_key += 1
     st.session_state.process_list = generate_data(seed_val, num_processes)
-    st.session_state.has_run = True
+    st.session_state.has_run = False
 elif st.session_state.prev_num_processes != num_processes or len(st.session_state.process_list) != num_processes:
     st.session_state.prev_num_processes = num_processes
     st.session_state.random_key += 1
     st.session_state.process_list = generate_data(seed_val, num_processes)
-    st.session_state.has_run = True
+    st.session_state.has_run = False
 
 
 # ==============================================================================
@@ -328,7 +338,13 @@ edited_df = st.data_editor(
     disabled=["Process"],
     key=f"editor_{st.session_state.random_key}"
 )
-st.session_state.process_list = edited_df.to_dict("records")
+
+# ตรวจสอบว่ามีการแก้ไขค่าตัวเลขในตารางหรือไม่
+edited_records = edited_df.to_dict("records")
+if edited_records != st.session_state.process_list:
+    st.session_state.process_list = edited_records
+    st.session_state.has_run = False
+
 processes_input = st.session_state.process_list
 
 
@@ -858,3 +874,17 @@ if st.session_state.get("has_run", False):
         render_algorithm_view(f"Round Robin Scheduling (q = {quantum_val})", r_rr, processes_input)
         render_clean_html("<div style='font-size: 18px; font-weight: 700; color: #0F172A; margin: 32px 0 12px 0;'>🏆 Comparison Summary</div>")
         render_comparison_summary(r_fcfs, r_sjf, r_rr, quantum_val, processes_input)
+else:
+    # การ์ดสถานะ / ข้อความแนะนำน่ารักๆ ระหว่างรอการกดคำนวณ
+    render_clean_html("""
+        <div style="background: #FFFFFF; border: 1.5px dashed #CBD5E1; border-radius: 16px; padding: 42px 28px; text-align: center; margin: 18px 0 32px 0; box-shadow: 0 4px 18px rgba(149, 157, 165, 0.05);">
+            <div style="font-size: 38px; margin-bottom: 12px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.06));">✨</div>
+            <div style="font-size: 17px; font-weight: 700; color: #0F172A; margin-bottom: 6px;">
+                พร้อมจำลองการจัดตารางเวลาซีพียูแล้ว
+            </div>
+            <div style="font-size: 13.5px; color: #64748B; max-width: 520px; margin: 0 auto; line-height: 1.6;">
+                ปรับแต่งค่าในตาราง Job Queue ด้านบน หรือสุ่มโจทย์ใหม่ตามต้องการ <br>
+                จากนั้นกดปุ่ม <span style="display: inline-block; background: #EEF2FF; color: #4F46E5; font-weight: 600; padding: 2px 10px; border-radius: 6px; font-size: 13px;">🚀 คำนวณตารางงาน (Run Simulation)</span> ด้านบนเพื่อแสดงผลลัพธ์ Gantt Chart และสถิติเปรียบเทียบ
+            </div>
+        </div>
+    """)
