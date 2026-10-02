@@ -1,8 +1,9 @@
 import streamlit as st
 import random
 import pandas as pd
+import altair as alt
 
-# ตั้งค่าหน้าเว็บแบบ Light Minimalist
+# ตั้งค่าหน้าเว็บแบบ Warm Minimalist
 st.set_page_config(
     page_title="CPU Scheduling Simulator",
     page_icon="⚡",
@@ -18,7 +19,7 @@ def render_clean_html(html_str):
 
 
 # ==============================================================================
-# --- LIGHT MINIMALIST PASTEL STYLESHEET ---
+# --- WARM MINIMALIST THEME STYLESHEET ---
 # ==============================================================================
 render_clean_html("""
     <style>
@@ -29,9 +30,9 @@ render_clean_html("""
         color: #1E293B;
     }
     
-    /* พื้นหลังสีสว่าง คลีน มินิมอล */
+    /* 1. พื้นหลังสี Warm Cream นุ่ม ละมุนตา ไม่ขาวกระด้าง */
     .stApp {
-        background-color: #F8FAFC !important;
+        background-color: #FDFBF7 !important;
     }
     
     /* ซ่อน Header มาตรฐานของ Streamlit */
@@ -39,41 +40,55 @@ render_clean_html("""
         background: transparent !important;
     }
     
-    /* ปุ่มกดหลักและรองแบบเรียบหรู */
+    /* 2. สไตล์ปุ่ม Run Simulation: ขนาดพอดี ไม่ล้นจอ พร้อมเอฟเฟกต์ยกตัวเมื่อ Hover */
+    .stButton > button[kind="primary"] {
+        background: linear-gradient(135deg, #6366F1 0%, #4F46E5 100%) !important;
+        color: #FFFFFF !important;
+        border: none !important;
+        border-radius: 12px !important;
+        font-weight: 600 !important;
+        font-family: 'Prompt', sans-serif !important;
+        padding: 10px 28px !important;
+        font-size: 15px !important;
+        box-shadow: 0 4px 14px rgba(79, 70, 229, 0.22) !important;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        cursor: pointer !important;
+    }
+    .stButton > button[kind="primary"]:hover {
+        background: linear-gradient(135deg, #4F46E5 0%, #4338CA 100%) !important;
+        box-shadow: 0 8px 22px rgba(79, 70, 229, 0.35) !important;
+        transform: translateY(-2px) !important;
+    }
+    .stButton > button[kind="primary"]:active {
+        transform: translateY(1px) !important;
+        box-shadow: 0 2px 6px rgba(79, 70, 229, 0.2) !important;
+    }
+    
+    /* ปุ่ม Secondary */
     .stButton > button {
-        border-radius: 8px !important;
+        border-radius: 10px !important;
         font-weight: 600 !important;
         font-family: 'Prompt', sans-serif !important;
         padding: 8px 18px !important;
-        font-size: 14px !important;
+        font-size: 13.5px !important;
         transition: all 0.15s ease !important;
-        border: 1px solid #CBD5E1 !important;
+        border: 1px solid #E2E8F0 !important;
         background-color: #FFFFFF !important;
         color: #334155 !important;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+        box-shadow: 0 2px 6px rgba(149, 157, 165, 0.05) !important;
     }
     .stButton > button:hover {
-        background-color: #F1F5F9 !important;
-        border-color: #94A3B8 !important;
+        background-color: #F8FAFC !important;
+        border-color: #CBD5E1 !important;
         transform: translateY(-1px) !important;
+        box-shadow: 0 4px 12px rgba(149, 157, 165, 0.1) !important;
     }
     .stButton > button:active {
         transform: translateY(1px) !important;
     }
     
-    .stButton > button[kind="primary"] {
-        background-color: #4F46E5 !important;
-        color: #FFFFFF !important;
-        border: none !important;
-        box-shadow: 0 1px 3px rgba(79, 70, 229, 0.25) !important;
-    }
-    .stButton > button[kind="primary"]:hover {
-        background-color: #4338CA !important;
-        box-shadow: 0 4px 10px rgba(79, 70, 229, 0.35) !important;
-    }
-    
     /* Input Fields */
-    [data-testid="stNumberInput"] label, [data-testid="stSelectbox"] label {
+    [data-testid="stNumberInput"] label, [data-testid="stSelectbox"] label, [data-testid="stRadio"] label {
         color: #475569 !important;
         font-weight: 600 !important;
         font-size: 13.5px !important;
@@ -81,28 +96,33 @@ render_clean_html("""
     [data-testid="stNumberInput"] input {
         background-color: #FFFFFF !important;
         color: #0F172A !important;
-        border: 1px solid #CBD5E1 !important;
-        border-radius: 8px !important;
+        border: 1px solid #E2E8F0 !important;
+        border-radius: 10px !important;
         font-family: 'JetBrains Mono', monospace !important;
     }
     [data-testid="stSelectbox"] div[data-baseweb="select"] {
         background-color: #FFFFFF !important;
-        border: 1px solid #CBD5E1 !important;
-        border-radius: 8px !important;
+        border: 1px solid #E2E8F0 !important;
+        border-radius: 10px !important;
+    }
+    
+    /* สไตล์ Radio Switcher */
+    div[data-testid="stRadio"] > div {
+        gap: 16px;
     }
     
     /* ตาราง Data Editor */
     div[data-testid="stDataEditor"] {
         background-color: #FFFFFF !important;
-        border: 1px solid #E2E8F0 !important;
-        border-radius: 10px !important;
+        border: 1px solid #F1EFEA !important;
+        border-radius: 14px !important;
         overflow: hidden !important;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.03) !important;
+        box-shadow: 0 8px 24px rgba(149, 157, 165, 0.06) !important;
     }
     
     /* Print Layout */
     @media print {
-        header, footer, .stButton, [data-testid="stToolbar"] {
+        header, footer, .stButton, [data-testid="stToolbar"], div[data-testid="stRadio"] {
             display: none !important;
         }
         .stApp {
@@ -117,7 +137,7 @@ render_clean_html("""
 # --- HEADER BAR ---
 # ==============================================================================
 render_clean_html("""
-    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid #E2E8F0;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid #EBE7DF;">
         <div>
             <h1 style="font-size: 24px; font-weight: 700; color: #0F172A; margin: 0 0 4px 0; letter-spacing: -0.3px;">CPU Scheduling Simulator</h1>
             <p style="font-size: 13.5px; color: #64748B; margin: 0;">การจำลองการจัดตารางเวลาซีพียู: FCFS, SJF (Non-preemptive) และ Round Robin</p>
@@ -126,14 +146,15 @@ render_clean_html("""
             <button onclick="window.print()" style="
                 background: #FFFFFF;
                 color: #334155;
-                border: 1px solid #CBD5E1;
-                padding: 7px 16px;
-                border-radius: 8px;
+                border: 1px solid #E2E8F0;
+                padding: 8px 18px;
+                border-radius: 10px;
                 font-size: 13px;
                 font-weight: 600;
                 cursor: pointer;
-                box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+                box-shadow: 0 2px 6px rgba(149, 157, 165, 0.06);
                 font-family: 'Prompt', sans-serif;
+                transition: all 0.15s ease;
             ">
                 🖨️ พิมพ์รายงาน / PDF
             </button>
@@ -194,15 +215,12 @@ def generate_data(seed, count):
     random.shuffle(subj_pool)
     
     rows = []
-    # กำหนดให้ Process แรกมี AT = 0 เสมอ
-    # และ Process ถัดไปมี AT อยู่ในช่วง 0 ถึง 3 อย่างต่อเนื่อง เพื่อไม่ให้เกิด Idle คั่นกลาง
     current_coverage = 0
     for i in range(count):
         bt = random.randint(2, 7)
         if i == 0:
             at = 0
         else:
-            # สุ่ม AT ในช่วง 0 ถึง 3 และไม่เกิน cumulative burst time ที่มี เพื่อให้งานพร้อมรันต่อเนื่อง
             max_at = min(3, max(1, current_coverage))
             at = random.randint(0, max_at)
         current_coverage += bt
@@ -238,6 +256,9 @@ if "prev_num_processes" not in st.session_state:
 if "process_list" not in st.session_state:
     st.session_state.process_list = generate_data(st.session_state.seed_val, st.session_state.num_processes)
 
+if "has_run" not in st.session_state:
+    st.session_state.has_run = True
+
 def on_random_click():
     current_seed = st.session_state.get("seed_val", 1234)
     new_seed = random.randint(1000, 9999)
@@ -247,6 +268,7 @@ def on_random_click():
     st.session_state.prev_seed = new_seed
     st.session_state.random_key += 1
     st.session_state.process_list = generate_data(new_seed, st.session_state.num_processes)
+    st.session_state.has_run = True
 
 
 # ==============================================================================
@@ -280,10 +302,12 @@ if st.session_state.prev_seed != seed_val:
     st.session_state.prev_seed = seed_val
     st.session_state.random_key += 1
     st.session_state.process_list = generate_data(seed_val, num_processes)
+    st.session_state.has_run = True
 elif st.session_state.prev_num_processes != num_processes or len(st.session_state.process_list) != num_processes:
     st.session_state.prev_num_processes = num_processes
     st.session_state.random_key += 1
     st.session_state.process_list = generate_data(seed_val, num_processes)
+    st.session_state.has_run = True
 
 
 # ==============================================================================
@@ -428,7 +452,7 @@ def run_rr(procs, quantum):
 
 
 # ==============================================================================
-# --- TEXTBOOK-STYLE CLEAN GANTT CHART ---
+# --- TEXTBOOK-STYLE GANTT CHART (WITH HOVER SCALE EFFECT) ---
 # ==============================================================================
 def render_gantt_chart(gantt):
     if not gantt:
@@ -454,7 +478,6 @@ def render_gantt_chart(gantt):
         is_first = (i == 0)
         is_last = (i == n - 1)
         
-        # กรอบแบบเรียน: เส้นขอบเข้มต่อเนื่องชัดเจน
         radius_css = ""
         if is_first and is_last:
             radius_css = "border-radius: 6px;"
@@ -463,7 +486,7 @@ def render_gantt_chart(gantt):
         elif is_last:
             radius_css = "border-top-right-radius: 6px; border-bottom-right-radius: 6px;"
             
-        # ตัวกล่องแสดงเฉพาะรหัส Process ตรงกลางเท่านั้น
+        # ตัวกล่อง Process พร้อมเอฟเฟกต์ Hover Scale เบาๆ
         bar_box = f"""
             <div style="
                 height: 46px;
@@ -483,12 +506,15 @@ def render_gantt_chart(gantt):
                 font-family: 'Prompt', sans-serif;
                 box-sizing: border-box;
                 user-select: none;
-            ">
+                cursor: pointer;
+                transition: transform 0.18s ease, box-shadow 0.18s ease;
+            " onmouseover="this.style.transform='translateY(-2px) scale(1.02)'; this.style.boxShadow='0 6px 16px rgba(0,0,0,0.08)';"
+               onmouseout="this.style.transform='translateY(0px) scale(1)'; this.style.boxShadow='none';">
                 {p_name}
             </div>
         """
         
-        # ตัวเลขเวลาที่รอยต่อด้านล่าง: จุดเริ่มต้นที่บล็อกแรกสุด
+        # ตัวเลขเวลาเริ่มต้นที่รอยต่อซ้ายสุด
         first_tick = ""
         if is_first:
             first_tick = f"""
@@ -498,7 +524,7 @@ def render_gantt_chart(gantt):
                 </div>
             """
             
-        # ตัวเลขเวลาที่รอยต่อด้านขวาของแต่ละบล็อก
+        # ตัวเลขเวลาสิ้นสุดที่รอยต่อขวาของแต่ละบล็อก
         end_tick = f"""
             <div style="position: absolute; right: 0px; top: 46px; transform: translateX(50%); display: flex; flex-direction: column; align-items: center; pointer-events: none; z-index: 2;">
                 <div style="width: 2px; height: 8px; background: #334155;"></div>
@@ -516,7 +542,7 @@ def render_gantt_chart(gantt):
     gantt_inner = "".join(blocks_html)
     
     chart_container = f"""
-        <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; padding: 18px 20px 32px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.03); margin: 12px 0 20px 0;">
+        <div style="background: #FFFFFF; border: 1px solid #F1EFEA; border-radius: 16px; padding: 18px 20px 32px 20px; box-shadow: 0 8px 24px rgba(149, 157, 165, 0.08); margin: 12px 0 20px 0;">
             <div style="overflow-x: auto; padding-bottom: 4px;">
                 <div style="display: inline-flex; flex-direction: row; margin: 10px 24px 28px 24px; position: relative;">
                     {gantt_inner}
@@ -528,7 +554,7 @@ def render_gantt_chart(gantt):
 
 
 # ==============================================================================
-# --- CLEAN RESULTS TABLE & METRICS ---
+# --- RESULTS TABLE COMPONENT ---
 # ==============================================================================
 def render_results_table(procs, res):
     rows_html = []
@@ -546,7 +572,7 @@ def render_results_table(procs, res):
         st_info = get_process_style(p_id)
         
         row_html = f"""
-            <tr style="border-bottom: 1px solid #F1F5F9; background: #FFFFFF;">
+            <tr style="border-bottom: 1px solid #F8FAFC; background: #FFFFFF;">
                 <td style="padding: 10px 14px; text-align: center;">
                     <span style="display: inline-block; padding: 3px 12px; border-radius: 6px; font-weight: 700; font-family: 'Prompt', sans-serif; font-size: 13px; background: {st_info['bg']}; color: {st_info['text']}; border: 1px solid {st_info['border']};">
                         {p_id}
@@ -563,10 +589,10 @@ def render_results_table(procs, res):
         rows_html.append(row_html)
         
     table_html = f"""
-        <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.03); margin: 14px 0 18px 0;">
+        <div style="background: #FFFFFF; border: 1px solid #F1EFEA; border-radius: 16px; overflow: hidden; box-shadow: 0 8px 24px rgba(149, 157, 165, 0.08); margin: 14px 0 18px 0;">
             <table style="width: 100%; border-collapse: collapse; text-align: left;">
                 <thead>
-                    <tr style="background: #F8FAFC; border-bottom: 1.5px solid #E2E8F0;">
+                    <tr style="background: #FAF8F5; border-bottom: 1.5px solid #EBE7DF;">
                         <th style="padding: 11px 14px; text-align: center; color: #475569; font-size: 12.5px; font-weight: 600;">Process</th>
                         <th style="padding: 11px 14px; color: #475569; font-size: 12.5px; font-weight: 600;">ชื่องาน / วิชา</th>
                         <th style="padding: 11px 14px; text-align: center; color: #475569; font-size: 12.5px; font-weight: 600;">AT (มาถึง)</th>
@@ -582,55 +608,253 @@ def render_results_table(procs, res):
             </table>
         </div>
     """
-    return table_html, tot_tat, tot_wt
+    avg_tat = tot_tat / len(procs)
+    avg_wt = tot_wt / len(procs)
+    return table_html, avg_tat, avg_wt
 
-def display_results(title, result_tuple, procs):
+
+# ==============================================================================
+# --- RENDER SINGLE ALGORITHM VIEW ---
+# ==============================================================================
+def render_algorithm_view(title, result_tuple, procs):
     gantt, res = result_tuple
     
     render_clean_html(f"""
-        <div style="font-size: 16px; font-weight: 700; color: #0F172A; margin-top: 24px; margin-bottom: 6px;">
+        <div style="font-size: 16px; font-weight: 700; color: #0F172A; margin-top: 18px; margin-bottom: 6px;">
             {title}
         </div>
     """)
     
-    # 1. Gantt Chart แบบเรียน คลีน มินิมอล
+    # 1. Gantt Chart
     chart_html = render_gantt_chart(gantt)
     render_clean_html(chart_html)
     
-    # 2. ตารางผลลัพธ์
-    table_html, tot_tat, tot_wt = render_results_table(procs, res)
+    # 2. Table
+    table_html, avg_tat, avg_wt = render_results_table(procs, res)
     render_clean_html(table_html)
     
-    # 3. ค่าเฉลี่ยสไตล์การ์ดมินิมอล
-    avg_tat = tot_tat / len(procs)
-    avg_wt = tot_wt / len(procs)
-    
+    # 3. Metric Cards
     metric_cards_html = f"""
         <div style="display: flex; gap: 14px; margin: 14px 0 24px 0; flex-wrap: wrap;">
-            <div style="flex: 1; min-width: 200px; background: #FFFFFF; border: 1px solid #E2E8F0; border-left: 4px solid #4F46E5; border-radius: 10px; padding: 14px 18px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+            <div style="flex: 1; min-width: 200px; background: #FFFFFF; border: 1px solid #F1EFEA; border-left: 4px solid #6366F1; border-radius: 12px; padding: 14px 18px; box-shadow: 0 4px 14px rgba(149, 157, 165, 0.06);">
                 <div style="font-size: 12px; font-weight: 600; color: #64748B; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 4px;">⏱️ Turnaround Time เฉลี่ย (Avg TAT)</div>
                 <div style="font-size: 24px; font-weight: 700; color: #0F172A; font-family: 'JetBrains Mono', monospace;">
                     {avg_tat:.2f} <span style="font-size: 13px; font-weight: 400; color: #94A3B8; font-family: 'Prompt', sans-serif;">หน่วยเวลา</span>
                 </div>
             </div>
-            <div style="flex: 1; min-width: 200px; background: #FFFFFF; border: 1px solid #E2E8F0; border-left: 4px solid #059669; border-radius: 10px; padding: 14px 18px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+            <div style="flex: 1; min-width: 200px; background: #FFFFFF; border: 1px solid #F1EFEA; border-left: 4px solid #10B981; border-radius: 12px; padding: 14px 18px; box-shadow: 0 4px 14px rgba(149, 157, 165, 0.06);">
                 <div style="font-size: 12px; font-weight: 600; color: #64748B; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 4px;">⏳ Waiting Time เฉลี่ย (Avg WT)</div>
                 <div style="font-size: 24px; font-weight: 700; color: #0F172A; font-family: 'JetBrains Mono', monospace;">
                     {avg_wt:.2f} <span style="font-size: 13px; font-weight: 400; color: #94A3B8; font-family: 'Prompt', sans-serif;">หน่วยเวลา</span>
                 </div>
             </div>
         </div>
-        <hr style="border: none; border-top: 1px solid #E2E8F0; margin: 24px 0;">
+        <hr style="border: none; border-top: 1px solid #EBE7DF; margin: 24px 0;">
     """
     render_clean_html(metric_cards_html)
+    return avg_tat, avg_wt
 
 
 # ==============================================================================
-# --- SIMULATION EXECUTION TRIGGER ---
+# --- COMPARISON SUMMARY (WINNER CROWN + INTERACTIVE BAR CHART) ---
 # ==============================================================================
-render_clean_html("<div style='height: 12px;'></div>")
+def render_comparison_summary(r_fcfs, r_sjf, r_rr, q_val, procs):
+    n = len(procs)
+    
+    # คำนวณ Avg TAT และ Avg WT
+    tat_fcfs = sum(r_fcfs[1][p["Process"]]["TAT"] for p in procs) / n
+    wt_fcfs = sum(r_fcfs[1][p["Process"]]["WT"] for p in procs) / n
+    
+    tat_sjf = sum(r_sjf[1][p["Process"]]["TAT"] for p in procs) / n
+    wt_sjf = sum(r_sjf[1][p["Process"]]["WT"] for p in procs) / n
+    
+    tat_rr = sum(r_rr[1][p["Process"]]["TAT"] for p in procs) / n
+    wt_rr = sum(r_rr[1][p["Process"]]["WT"] for p in procs) / n
+    
+    # หาผู้ชนะ (Avg WT น้อยที่สุด)
+    candidates = [
+        {"name": "SJF (Shortest Job First - Non-preemptive)", "short": "SJF", "wt": wt_sjf, "tat": tat_sjf},
+        {"name": "FCFS (First-Come, First-Served)", "short": "FCFS", "wt": wt_fcfs, "tat": tat_fcfs},
+        {"name": f"Round Robin (q = {q_val})", "short": "Round Robin", "wt": wt_rr, "tat": tat_rr},
+    ]
+    candidates.sort(key=lambda x: (x["wt"], x["tat"]))
+    winner = candidates[0]
+    
+    # 1. การ์ดมงกุฎผู้ชนะ (Winner Crown Card)
+    winner_card_html = f"""
+        <div style="background: linear-gradient(135deg, #FFFDF5 0%, #FEF8E7 100%); border: 1.5px solid #FDE68A; border-radius: 16px; padding: 22px 26px; margin: 12px 0 24px 0; box-shadow: 0 8px 24px rgba(245, 158, 11, 0.08);">
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px;">
+                <div style="display: flex; align-items: center; gap: 16px;">
+                    <div style="font-size: 38px; line-height: 1; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));">🏆</div>
+                    <div>
+                        <div style="font-size: 12.5px; font-weight: 700; color: #B45309; text-transform: uppercase; letter-spacing: 0.5px;">Best Performance Summary</div>
+                        <div style="font-size: 21px; font-weight: 800; color: #78350F; margin-top: 2px;">
+                            👑 ผู้ชนะ: {winner['short']} (Avg WT ต่ำสุด = {winner['wt']:.2f})
+                        </div>
+                        <div style="font-size: 13.5px; color: #92400E; margin-top: 4px;">
+                            {winner['name']} ทำเวลารอคอยเฉลี่ยน้อยที่สุด มีประสิทธิภาพสูงสุดสำหรับชุดข้อมูลนี้
+                        </div>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 12px;">
+                    <div style="background: #FFFFFF; border: 1px solid #FCD34D; border-radius: 12px; padding: 10px 18px; text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,0.03);">
+                        <div style="font-size: 11.5px; font-weight: 600; color: #92400E;">Avg WT ต่ำที่สุด</div>
+                        <div style="font-size: 22px; font-weight: 800; color: #B45309; font-family: 'JetBrains Mono', monospace;">{winner['wt']:.2f}</div>
+                    </div>
+                    <div style="background: #FFFFFF; border: 1px solid #FCD34D; border-radius: 12px; padding: 10px 18px; text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,0.03);">
+                        <div style="font-size: 11.5px; font-weight: 600; color: #92400E;">Avg TAT</div>
+                        <div style="font-size: 22px; font-weight: 800; color: #4F46E5; font-family: 'JetBrains Mono', monospace;">{winner['tat']:.2f}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    """
+    render_clean_html(winner_card_html)
+    
+    # 2. กราฟแท่งเปรียบเทียบ Interactive Bar Chart (Altair)
+    render_clean_html("""
+        <div style="font-size: 15px; font-weight: 700; color: #1E293B; margin-top: 20px; margin-bottom: 8px;">
+            📊 กราฟเปรียบเทียบค่าเฉลี่ย (Average Metrics Comparison)
+        </div>
+    """)
+    
+    chart_data = pd.DataFrame([
+        {"Algorithm": "FCFS", "Metric": "Avg Turnaround Time (TAT)", "Value": round(tat_fcfs, 2)},
+        {"Algorithm": "FCFS", "Metric": "Avg Waiting Time (WT)", "Value": round(wt_fcfs, 2)},
+        {"Algorithm": "SJF", "Metric": "Avg Turnaround Time (TAT)", "Value": round(tat_sjf, 2)},
+        {"Algorithm": "SJF", "Metric": "Avg Waiting Time (WT)", "Value": round(wt_sjf, 2)},
+        {"Algorithm": f"Round Robin (q={q_val})", "Metric": "Avg Turnaround Time (TAT)", "Value": round(tat_rr, 2)},
+        {"Algorithm": f"Round Robin (q={q_val})", "Metric": "Avg Waiting Time (WT)", "Value": round(wt_rr, 2)},
+    ])
+    
+    bar_chart = (
+        alt.Chart(chart_data)
+        .mark_bar(cornerRadiusTopLeft=6, cornerRadiusTopRight=6)
+        .encode(
+            x=alt.X("Algorithm:N", title=None, axis=alt.Axis(labelAngle=0, labelFont='Prompt', labelFontSize=13, labelColor='#334155')),
+            y=alt.Y("Value:Q", title="หน่วยเวลา (Time Units)", axis=alt.Axis(labelFont='Prompt', titleFont='Prompt', labelColor='#64748B')),
+            color=alt.Color(
+                "Metric:N",
+                scale=alt.Scale(
+                    domain=["Avg Turnaround Time (TAT)", "Avg Waiting Time (WT)"],
+                    range=["#818CF8", "#34D399"]
+                ),
+                legend=alt.Legend(title=None, orient="top", labelFont='Prompt', labelFontSize=13)
+            ),
+            xOffset="Metric:N",
+            tooltip=[
+                alt.Tooltip("Algorithm:N", title="Algorithm"),
+                alt.Tooltip("Metric:N", title="Metric"),
+                alt.Tooltip("Value:Q", title="Value (หน่วยเวลา)")
+            ]
+        )
+        .properties(height=340)
+        .configure_view(strokeWidth=0)
+    )
+    st.altair_chart(bar_chart, use_container_width=True)
+    
+    # 3. ตารางสรุปเปรียบเทียบแบบเคียงข้างกัน (Comparison Table)
+    render_clean_html("""
+        <div style="font-size: 15px; font-weight: 700; color: #1E293B; margin-top: 24px; margin-bottom: 8px;">
+            📑 ตารางเปรียบเทียบค่าสถิติทั้ง 3 อัลกอริทึม
+        </div>
+    """)
+    
+    # จัดลำดับ Rank
+    rank_badges = {"0": "🥇 ยอดเยี่ยม (อันดับ 1)", "1": "🥈 อันดับ 2", "2": "🥉 อันดับ 3"}
+    summary_rows = []
+    for idx, c in enumerate(candidates):
+        rank_label = rank_badges.get(str(idx), "")
+        row_bg = "background: #FFFDF5;" if idx == 0 else "background: #FFFFFF;"
+        row_html = f"""
+            <tr style="border-bottom: 1px solid #F1EFEA; {row_bg}">
+                <td style="padding: 12px 16px; font-weight: 700; color: #0F172A; font-size: 13.5px;">{c['name']}</td>
+                <td style="padding: 12px 16px; text-align: center; font-family: 'JetBrains Mono', monospace; font-size: 14px; color: #4F46E5; font-weight: 700;">{c['tat']:.2f}</td>
+                <td style="padding: 12px 16px; text-align: center; font-family: 'JetBrains Mono', monospace; font-size: 14px; color: #059669; font-weight: 700;">{c['wt']:.2f}</td>
+                <td style="padding: 12px 16px; text-align: center;">
+                    <span style="display: inline-block; padding: 3px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; background: {'#FEF3C7' if idx==0 else '#F1F5F9'}; color: {'#92400E' if idx==0 else '#475569'}; border: 1px solid {'#FDE68A' if idx==0 else '#E2E8F0'};">
+                        {rank_label}
+                    </span>
+                </td>
+            </tr>
+        """
+        summary_rows.append(row_html)
+        
+    comp_table_html = f"""
+        <div style="background: #FFFFFF; border: 1px solid #F1EFEA; border-radius: 16px; overflow: hidden; box-shadow: 0 8px 24px rgba(149, 157, 165, 0.08); margin: 12px 0 24px 0;">
+            <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                <thead>
+                    <tr style="background: #FAF8F5; border-bottom: 1.5px solid #EBE7DF;">
+                        <th style="padding: 12px 16px; color: #475569; font-size: 13px; font-weight: 600;">Algorithm</th>
+                        <th style="padding: 12px 16px; text-align: center; color: #475569; font-size: 13px; font-weight: 600;">Avg Turnaround Time (TAT)</th>
+                        <th style="padding: 12px 16px; text-align: center; color: #475569; font-size: 13px; font-weight: 600;">Avg Waiting Time (WT)</th>
+                        <th style="padding: 12px 16px; text-align: center; color: #475569; font-size: 13px; font-weight: 600;">สรุปผลประเมิน</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {''.join(summary_rows)}
+                </tbody>
+            </table>
+        </div>
+    """
+    render_clean_html(comp_table_html)
 
-if st.button("🚀 คำนวณตารางงาน (Run Simulation)", type="primary", use_container_width=True):
-    display_results("FCFS Scheduling", run_fcfs(processes_input), processes_input)
-    display_results("SJF Scheduling (Non-preemptive)", run_sjf(processes_input), processes_input)
-    display_results(f"Round Robin Scheduling (q = {quantum_val})", run_rr(processes_input, quantum_val), processes_input)
+
+# ==============================================================================
+# --- SIMULATION EXECUTION TRIGGER & VIEW SWITCHER ---
+# ==============================================================================
+render_clean_html("<div style='height: 16px;'></div>")
+
+# ปรับปุ่ม Run Simulation ให้ขนาดสวยงาม อยู่ตรงกลาง ไม่ยาวล้นจอ
+col_btn_l, col_btn_c, col_btn_r = st.columns([1, 1.4, 1])
+with col_btn_c:
+    if st.button("🚀 คำนวณตารางงาน (Run Simulation)", type="primary", use_container_width=True):
+        st.session_state.has_run = True
+
+render_clean_html("<div style='height: 16px;'></div>")
+
+# ทำการคำนวณผลลัพธ์
+if st.session_state.get("has_run", False):
+    r_fcfs = run_fcfs(processes_input)
+    r_sjf = run_sjf(processes_input)
+    r_rr = run_rr(processes_input, quantum_val)
+    
+    # 2. ตัวเลือกระบบมุมมอง (View Mode Switcher)
+    col_view_title, col_view_radio = st.columns([1.2, 2.8])
+    with col_view_title:
+        render_clean_html("""
+            <div style="font-size: 16px; font-weight: 700; color: #0F172A; padding-top: 8px;">
+                🖥️ รูปแบบมุมมอง (View Mode):
+            </div>
+        """)
+    with col_view_radio:
+        view_mode = st.radio(
+            "View Mode:",
+            options=["📑 Tabs View (แยกตามอัลกอริทึม)", "📜 Scroll View (แสดงยาวในหน้าเดียว)"],
+            horizontal=True,
+            label_visibility="collapsed"
+        )
+    
+    render_clean_html("<div style='height: 10px;'></div>")
+    
+    if "Tabs View" in view_mode:
+        tab_fcfs, tab_sjf, tab_rr, tab_comp = st.tabs([
+            "FCFS", 
+            "SJF (Non-preemptive)", 
+            f"Round Robin (q = {quantum_val})", 
+            "🏆 Comparison Summary"
+        ])
+        with tab_fcfs:
+            render_algorithm_view("FCFS Scheduling", r_fcfs, processes_input)
+        with tab_sjf:
+            render_algorithm_view("SJF Scheduling (Non-preemptive)", r_sjf, processes_input)
+        with tab_rr:
+            render_algorithm_view(f"Round Robin Scheduling (q = {quantum_val})", r_rr, processes_input)
+        with tab_comp:
+            render_comparison_summary(r_fcfs, r_sjf, r_rr, quantum_val, processes_input)
+    else:
+        render_algorithm_view("FCFS Scheduling", r_fcfs, processes_input)
+        render_algorithm_view("SJF Scheduling (Non-preemptive)", r_sjf, processes_input)
+        render_algorithm_view(f"Round Robin Scheduling (q = {quantum_val})", r_rr, processes_input)
+        render_clean_html("<div style='font-size: 18px; font-weight: 700; color: #0F172A; margin: 32px 0 12px 0;'>🏆 Comparison Summary</div>")
+        render_comparison_summary(r_fcfs, r_sjf, r_rr, quantum_val, processes_input)
