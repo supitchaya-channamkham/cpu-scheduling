@@ -307,16 +307,15 @@ def generate_data(seed, count):
     subj_pool = SUBJECTS.copy()
     random.shuffle(subj_pool)
     
+    # สุ่มเลือก 1 งานให้มี AT = 0 แน่นอนตามเกณฑ์อาจารย์
+    zero_idx = random.randint(0, count - 1)
+    
     rows = []
-    current_coverage = 0
     for i in range(count):
-        bt = random.randint(2, 7)
-        if i == 0:
-            at = 0
-        else:
-            max_at = min(3, max(1, current_coverage))
-            at = random.randint(0, max_at)
-        current_coverage += bt
+        # สุ่ม AT เป็นจำนวนเต็ม 0-10
+        at = 0 if i == zero_idx else random.randint(0, 10)
+        # สุ่ม BT เป็นจำนวนเต็ม 1-8
+        bt = random.randint(1, 8)
         
         subj = subj_pool[i % len(subj_pool)]
         rows.append({
@@ -326,7 +325,6 @@ def generate_data(seed, count):
             "BT": bt
         })
     return rows
-
 
 # ==============================================================================
 # --- SESSION STATE INITIALIZATION ---
